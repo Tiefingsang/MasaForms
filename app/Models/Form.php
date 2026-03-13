@@ -58,7 +58,7 @@ class Form extends Model
     // Méthodes utilitaires
     public function getPublicUrlAttribute()
     {
-        return route('forms.public', ['slug' => $this->slug]);
+        return route('forms.public.show', ['slug' => $this->slug]);
     }
 
     public function isAcceptingResponses()

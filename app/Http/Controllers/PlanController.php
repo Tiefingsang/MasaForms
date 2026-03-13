@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Plan;
 use App\Models\Subscription;
 use Illuminate\Http\Request;
+use App\Notifications\SubscriptionActivatedNotification;
+use App\Notifications\SubscriptionExpiringNotification;
+use App\Notifications\SubscriptionExpiredNotification;
 
 class PlanController extends Controller
 {
@@ -39,6 +42,7 @@ class PlanController extends Controller
      */
     public function subscribe(Request $request, $slug)
     {
+        //dd($slug);
         $plan = Plan::where('slug', $slug)
             ->where('is_active', true)
             ->firstOrFail();
@@ -56,6 +60,7 @@ class PlanController extends Controller
             'starts_at' => now(),
             'status' => 'active',
         ]);
+        $user->notify(new SubscriptionActivatedNotification($subscription));
 
         // Rediriger vers la page de paiement
         return redirect()->route('payment.checkout', ['subscription' => $subscription->id]);

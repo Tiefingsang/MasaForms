@@ -3,7 +3,51 @@
 @section('title', 'Éditer ' . $form->title)
 
 @section('content')
-<div class="max-w-7xl mx-auto" x-data="formBuilder()" x-init="init({{ $form->id }})">
+<div class="max-w-7xl mx-auto" x-data="formBuilder()" x-init="init({{ $form->id }}, {{ json_encode($form) }}, {{ json_encode($form->fields) }})">
+
+    <!-- Styles pour les animations -->
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        .notification-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        .notification-leave {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+    </style>
+
+    <!-- Notification -->
+    <template x-if="notification.show">
+        <div class="fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg z-50 min-w-[300px]"
+             :class="notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'"
+             x-init="$el.classList.add('notification-enter')"
+             x-transition:leave="notification-leave">
+            <div class="flex items-center">
+                <i :class="notification.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'" class="mr-2"></i>
+                <span x-text="notification.message"></span>
+            </div>
+        </div>
+    </template>
+
     <!-- Navigation -->
     <div class="mb-6">
         <nav class="flex items-center justify-between">
@@ -11,21 +55,21 @@
                 <a href="{{ route('forms.index') }}" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-arrow-left"></i>
                 </a>
-                <h1 class="text-2xl font-bold text-gray-900">{{ $form->title }}</h1>
+                <h1 class="text-2xl font-bold text-gray-900" x-text="form.title"></h1>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                       :class="form.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
                     <span x-text="form.is_active ? 'Actif' : 'Inactif'"></span>
                 </span>
             </div>
             <div class="flex items-center space-x-3">
-                <a href="{{ $form->public_url }}" target="_blank"
+                <a :href="form.public_url" target="_blank"
                    class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-external-link-alt mr-2"></i>
                     Aperçu
                 </a>
                 <button @click="saveForm()"
                         :disabled="saving"
-                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg x-show="saving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -125,8 +169,7 @@
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center flex-1">
                                     <i class="fas fa-grip-vertical text-gray-400 cursor-move mr-2"></i>
-                                    <span class="text-sm font-medium text-gray-700" x-text="getFieldIcon(field.type)"></span>
-                                    <span class="ml-2 text-sm font-medium text-gray-900" x-text="field.label || 'Nouveau champ'"></span>
+                                    <span class="text-sm font-medium text-gray-900" x-text="field.label || 'Nouveau champ'"></span>
                                     <span class="ml-2 text-xs text-red-500" x-show="field.is_required">*</span>
                                 </div>
                                 <div class="flex items-center space-x-2">
@@ -188,7 +231,7 @@
                     <!-- Message si aucun champ -->
                     <div x-show="fields.length === 0" class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                         <i class="fas fa-arrow-up text-3xl text-gray-400 mb-3"></i>
-                        <p class="text-gray-500">Glissez ou cliquez sur un type de champ pour commencer</p>
+                        <p class="text-gray-500">Cliquez sur un type de champ pour commencer</p>
                     </div>
                 </div>
             </div>
@@ -207,24 +250,28 @@
                 </div>
                 <div class="px-4 py-5 sm:p-6">
                     <div class="space-y-4">
+                        <!-- Label -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Label du champ</label>
                             <input type="text" x-model="editingField.label"
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         </div>
 
+                        <!-- Placeholder -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Placeholder (optionnel)</label>
                             <input type="text" x-model="editingField.placeholder"
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         </div>
 
+                        <!-- Texte d'aide -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Texte d'aide (optionnel)</label>
                             <input type="text" x-model="editingField.help_text"
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         </div>
 
+                        <!-- Options pour radio/checkbox/select -->
                         <template x-if="['radio', 'checkbox', 'select'].includes(editingField.type)">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Options</label>
@@ -238,24 +285,23 @@
                                             </button>
                                         </div>
                                     </template>
-                                                                                <button @click="editingField.options.push('')"
-                                                    class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                                <i class="fas fa-plus mr-1"></i>
-                                                Ajouter une option
-                                            </button>
-                                        </div>
-                                    </template>
+                                    <button @click="editingField.options.push('')"
+                                            class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                        <i class="fas fa-plus mr-1"></i>
+                                        Ajouter une option
+                                    </button>
                                 </div>
-                            </template>
-                        </div>
+                            </div>
+                        </template>
 
+                        <!-- Champ obligatoire -->
                         <div class="flex items-center">
                             <input type="checkbox" x-model="editingField.is_required"
                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
                             <span class="ml-2 text-sm text-gray-600">Champ obligatoire</span>
                         </div>
 
-                        <!-- Validation supplémentaires -->
+                        <!-- Validation longueur -->
                         <template x-if="editingField.type === 'text' || editingField.type === 'textarea'">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -272,6 +318,7 @@
                         </template>
                     </div>
                 </div>
+                <!-- Boutons -->
                 <div class="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse bg-gray-50">
                     <button @click="saveField()"
                             class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
@@ -299,7 +346,8 @@ function formBuilder() {
             is_active: true,
             is_public: true,
             accepts_responses: true,
-            show_progress_bar: true
+            show_progress_bar: true,
+            public_url: ''
         },
         fields: [],
         selectedField: null,
@@ -307,26 +355,23 @@ function formBuilder() {
         editingField: null,
         editingFieldIndex: null,
         saving: false,
-
-        init(formId) {
-            this.formId = formId;
-            this.loadForm();
-            this.initSortable();
+        notification: {
+            show: false,
+            type: 'success',
+            message: ''
         },
 
-        async loadForm() {
-            try {
-                const response = await fetch(`/forms/${this.formId}/edit-data`);
-                const data = await response.json();
-                this.form = data.form;
-                this.fields = data.fields;
-            } catch (error) {
-                console.error('Erreur lors du chargement:', error);
-            }
+        init(formId, formData, fieldsData) {
+            this.formId = formId;
+            this.form = formData;
+            this.fields = fieldsData;
+            setTimeout(() => this.initSortable(), 100);
         },
 
         initSortable() {
             const container = document.getElementById('fields-container');
+            if (!container) return;
+
             new Sortable(container, {
                 animation: 150,
                 handle: '.fa-grip-vertical',
@@ -335,21 +380,6 @@ function formBuilder() {
                     this.fields.splice(evt.newIndex, 0, item);
                 }
             });
-        },
-
-        getFieldIcon(type) {
-            const icons = {
-                text: '<i class="fas fa-font"></i>',
-                textarea: '<i class="fas fa-paragraph"></i>',
-                email: '<i class="fas fa-envelope"></i>',
-                tel: '<i class="fas fa-phone"></i>',
-                number: '<i class="fas fa-calculator"></i>',
-                date: '<i class="fas fa-calendar"></i>',
-                radio: '<i class="fas fa-dot-circle"></i>',
-                checkbox: '<i class="fas fa-check-square"></i>',
-                select: '<i class="fas fa-list"></i>'
-            };
-            return icons[type] || '<i class="fas fa-question"></i>';
         },
 
         addField(type) {
@@ -375,15 +405,17 @@ function formBuilder() {
         },
 
         saveField() {
+            if (!this.editingField.label) {
+                this.showNotification('error', 'Le label est obligatoire');
+                return;
+            }
+
             if (this.editingFieldIndex === null) {
-                // Nouveau champ
                 this.fields.push(this.editingField);
             } else {
-                // Mise à jour
                 this.fields[this.editingFieldIndex] = this.editingField;
             }
             this.showFieldModal = false;
-            this.selectedField = this.fields.length - 1;
         },
 
         duplicateField(index) {
@@ -391,18 +423,19 @@ function formBuilder() {
             field.id = Date.now();
             field.label = field.label + ' (copie)';
             this.fields.splice(index + 1, 0, field);
+            this.showNotification('success', 'Champ dupliqué');
         },
 
         deleteField(index) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce champ ?')) {
                 this.fields.splice(index, 1);
-                if (this.selectedField === index) {
-                    this.selectedField = null;
-                }
+                this.showNotification('success', 'Champ supprimé');
             }
         },
 
         async saveForm() {
+            if (this.saving) return;
+
             this.saving = true;
             try {
                 const response = await fetch(`/forms/${this.formId}/fields`, {
@@ -419,14 +452,29 @@ function formBuilder() {
 
                 const data = await response.json();
 
-                if (data.success) {
-                    alert('Formulaire sauvegardé avec succès !');
+                if (response.ok && data.success) {
+                    this.showNotification('success', '✅ Formulaire sauvegardé avec succès !');
+                } else {
+                    this.showNotification('error', data.message || '❌ Erreur lors de la sauvegarde');
                 }
             } catch (error) {
-                alert('Erreur lors de la sauvegarde');
+                console.error('Erreur:', error);
+                this.showNotification('error', '❌ Erreur de connexion');
             } finally {
                 this.saving = false;
             }
+        },
+
+        showNotification(type, message) {
+            this.notification = {
+                show: true,
+                type: type,
+                message: message
+            };
+
+            setTimeout(() => {
+                this.notification.show = false;
+            }, 3000);
         }
     }
 }

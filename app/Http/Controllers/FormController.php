@@ -7,6 +7,7 @@ use App\Models\FormField;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Notifications\FormLimitNotification;
 
 class FormController extends Controller
 {
@@ -67,6 +68,19 @@ class FormController extends Controller
             'background_color' => $request->background_color ?? '#FFFFFF',
             'settings' => $request->settings ?? [],
         ]);
+
+        $user = auth()->user();
+        $plan = $user->currentPlan()->first();
+
+        if ($plan && $plan->max_forms) {
+            $currentCount = $user->forms()->count();
+            $percentage = ($currentCount / $plan->max_forms) * 100;
+
+
+            if ($percentage >= 80 && $percentage < 100) {
+                $user->notify(new FormLimitNotification($user, $currentCount, $plan->max_forms));
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -210,4 +224,101 @@ class FormController extends Controller
         return redirect()->route('forms.edit', $newForm)
             ->with('success', 'Formulaire dupliqué avec succès');
     }
+
+    public function share(Form $form)
+    {
+        $this->authorize('view', $form);
+
+        return view('forms.share', compact('form'));
+    }
+
+
+    public function regenerateLink(Form $form)
+    {
+        $this->authorize('update', $form);
+
+        $form->slug = Str::random(10);
+        $form->save();
+
+        return redirect()->route('forms.share', $form)
+            ->with('success', 'Nouveau lien généré avec succès !');
+    }
+
+
+    public function updateSettings(Request $request, Form $form)
+    {
+        $this->authorize('update', $form);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+            'is_public' => 'boolean',
+            'accepts_responses' => 'boolean',
+            'show_progress_bar' => 'boolean',
+            'captcha_enabled' => 'boolean',
+            'max_responses' => 'nullable|integer|min:1',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after:start_date',
+            'password' => 'nullable|string|min:4',
+            'thank_you_message' => 'nullable|string',
+        ]);
+
+        $form->update($request->all());
+
+        return redirect()->route('forms.settings', $form)
+            ->with('success', 'Paramètres mis à jour avec succès !');
+    }
+
+    /**
+     * Afficher les paramètres du formulaire
+     */
+    public function settings(Form $form)
+    {
+        $this->authorize('update', $form);
+
+        return view('forms.settings', compact('form'));
+    }
+
+    /**
+     * Afficher la page de design du formulaire
+     */
+    public function design(Form $form)
+    {
+        $this->authorize('update', $form);
+
+        return view('forms.design', compact('form'));
+    }
+
+    /**
+     * Mettre à jour le design du formulaire
+     */
+    public function updateDesign(Request $request, Form $form)
+    {
+        $this->authorize('update', $form);
+
+        $request->validate([
+            'primary_color' => 'required|string|max:7',
+            'background_color' => 'required|string|max:7',
+            'logo' => 'nullable|image|max:2048',
+            'cover_image' => 'nullable|image|max:2048',
+        ]);
+
+        $data = $request->only(['primary_color', 'background_color']);
+
+        if ($request->hasFile('logo')) {
+            $data['logo_path'] = $request->file('logo')->store('form-logos', 'public');
+        }
+
+        if ($request->hasFile('cover_image')) {
+            $data['cover_image'] = $request->file('cover_image')->store('form-covers', 'public');
+        }
+
+        $form->update($data);
+
+        return redirect()->route('forms.design', $form)
+            ->with('success', 'Design mis à jour avec succès !');
+    }
+
+
 }

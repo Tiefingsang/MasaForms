@@ -145,13 +145,89 @@
                     <!-- Menu utilisateur -->
                     <div class="flex items-center gap-x-4 lg:gap-x-6" x-data="{ open: false }">
                         <!-- Notifications -->
-                        <button type="button" class="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative">
+                        {{-- <button type="button" class="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative">
                             <span class="sr-only">Voir les notifications</span>
                             <i class="fas fa-bell h-6 w-6"></i>
                             @if(auth()->user()->unreadNotifications->count() > 0)
                                 <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
                             @endif
-                        </button>
+                        </button> --}}
+                        {{-- resources/views/layouts/app.blade.php --}}
+                        <!-- Remplacer le bouton des notifications par : -->
+
+                        <div class="relative" x-data="{ notificationsOpen: false }">
+                            <button @click="notificationsOpen = !notificationsOpen"
+                                    type="button"
+                                    class="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative">
+                                <span class="sr-only">Voir les notifications</span>
+                                <i class="fas fa-bell h-6 w-6"></i>
+                                @php $unreadCount = auth()->user()->unreadNotifications->count(); @endphp
+                                @if($unreadCount > 0)
+                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+                                        {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                                    </span>
+                                @endif
+                            </button>
+
+                            <!-- Dropdown des notifications récentes -->
+                            <div x-show="notificationsOpen"
+                                @click.away="notificationsOpen = false"
+                                class="absolute right-0 mt-2 w-96 bg-white rounded-md shadow-lg overflow-hidden z-50"
+                                style="display: none;">
+
+                                <div class="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                                    <h3 class="text-sm font-medium text-gray-700">Notifications</h3>
+                                    <a href="{{ route('notifications.index') }}" class="text-xs text-blue-600 hover:text-blue-800">
+                                        Voir tout
+                                    </a>
+                                </div>
+
+                                <div class="max-h-96 overflow-y-auto">
+                                    @forelse(auth()->user()->unreadNotifications->take(5) as $notification)
+                                        <div class="p-3 border-b border-gray-100 hover:bg-gray-50">
+                                            <div class="flex items-start">
+                                                <div class="flex-shrink-0 mr-3">
+                                                    @php
+                                                        $icon = match($notification->data['type'] ?? 'default') {
+                                                            'subscription_activated' => '🎉',
+                                                            'subscription_expiring' => '⚠️',
+                                                            'subscription_expired' => '❌',
+                                                            'form_limit' => '📊',
+                                                            'new_template' => '✨',
+                                                            'inactive_form' => '💤',
+                                                            default => '🔔'
+                                                        };
+                                                    @endphp
+                                                    <span class="text-xl">{{ $icon }}</span>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <p class="text-sm font-medium text-gray-900">{{ $notification->data['title'] }}</p>
+                                                    <p class="text-xs text-gray-600">{{ Str::limit($notification->data['message'], 60) }}</p>
+                                                    <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="p-4 text-center text-sm text-gray-500">
+                                            <span class="text-3xl mb-2 block">🔔</span>
+                                            Aucune nouvelle notification
+                                        </div>
+                                    @endforelse
+                                </div>
+
+                                @if(auth()->user()->unreadNotifications->count() > 0)
+                                    <div class="p-2 bg-gray-50 border-t border-gray-200">
+                                        <form action="{{ route('notifications.read-all') }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="w-full text-center text-xs text-blue-600 hover:text-blue-800 py-1">
+                                                <i class="fas fa-check-double mr-1"></i>
+                                                Marquer tout comme lu
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
 
                         <!-- Séparateur -->
                         <div class="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"></div>

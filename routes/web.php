@@ -35,6 +35,9 @@ use App\Http\Controllers\WebhookController;
 // ===========================================
 // ROUTES PUBLIQUES (Accessibles à tous)
 // ===========================================
+// routes/web.php (temporaire, à supprimer après test)
+// Ajoutez cette route temporaire dans routes/web.php
+
 
 // Page d'accueil
 Route::get('/', function () {
@@ -97,10 +100,47 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
+
+// Routes publiques pour les invitations
+Route::get('/team/accept/{token}', [TeamController::class, 'acceptInvitation'])->name('team.accept');
+Route::get('/team/decline/{token}', [TeamController::class, 'declineInvitation'])->name('team.decline');
+Route::post('/team/cancel/{invitation}', [TeamController::class, 'cancelInvitation'])->name('team.cancel')->middleware('auth');
+
 // ===========================================
 // ROUTES PROTÉGÉES (Utilisateurs connectés)
 // ===========================================
 Route::middleware(['auth', 'check.subscription'])->group(function () {
+
+Route::get('/test-notification', function() {
+        try {
+            $user = auth()->user();
+
+            if (!$user) {
+                return redirect()->route('login')->with('error', 'Vous devez être connecté');
+            }
+
+            // Envoyer 3 notifications de test
+            $user->notify(new \App\Notifications\TestNotification(
+                'Bienvenue sur Masadigitale Forms',
+                'Nous sommes ravis de vous compter parmi nos utilisateurs !'
+            ));
+
+            $user->notify(new \App\Notifications\TestNotification(
+                'Nouvelle fonctionnalité',
+                'Le glisser-déposer est maintenant disponible pour tous vos formulaires.'
+            ));
+
+            $user->notify(new \App\Notifications\TestNotification(
+                'Rappel',
+                'Vous avez 3 formulaires en attente de publication.'
+            ));
+
+            return redirect()->back()->with('success', '✅ 3 notifications de test ont été envoyées');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', '❌ Erreur : ' . $e->getMessage());
+        }
+    })->name('test.notification');
 
     // =======================================
     // DÉCONNEXION
@@ -108,10 +148,37 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 
     // =======================================
+    // verification de l'email
+    // =======================================
+ Route::get('/email/verify', [VerificationController::class, 'notice'])
+        ->name('verification.notice');
+
+    Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+        ->middleware(['signed'])
+        ->name('verification.verify');
+
+    Route::post('/email/resend', [VerificationController::class, 'resend'])
+        ->name('verification.resend');
+
+    // =======================================
     // DASHBOARD
     // =======================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])->name('dashboard.analytics');
+
+    // =======================================
+    // TEAM
+    // =======================================
+    Route::prefix('team')->name('team.')->group(function () {
+        Route::get('/', [TeamController::class, 'index'])->name('index');
+        Route::get('/invite', [TeamController::class, 'create'])->name('create');
+        Route::post('/invite', [TeamController::class, 'invite'])->name('invite');
+        Route::delete('/members/{member}', [TeamController::class, 'removeMember'])->name('members.remove');
+        Route::put('/members/{member}/role', [TeamController::class, 'updateRole'])->name('members.role');
+        Route::post('/leave', [TeamController::class, 'leaveTeam'])->name('leave');
+    });
+
+
 
     // =======================================
     // GESTION DES FORMULAIRES (CRUD complet)
@@ -186,6 +253,7 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
         Route::get('/{slug}', [PlanController::class, 'show'])->name('show');
 
         // S'abonner à un plan
+
         Route::post('/{slug}/subscribe', [PlanController::class, 'subscribe'])->name('subscribe');
 
         // Changer de plan
@@ -201,6 +269,22 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
         Route::get('/invoices', [PlanController::class, 'invoices'])->name('invoices');
         Route::get('/invoices/{invoice}/download', [PlanController::class, 'downloadInvoice'])->name('invoice.download');
     });
+
+    // =======================================
+    //API
+    // =======================================
+    Route::prefix('api-keys')->name('api-keys.')->group(function () {
+        Route::get('/', [ApiKeyController::class, 'index'])->name('index');
+        Route::get('/create', [ApiKeyController::class, 'create'])->name('create');
+        Route::post('/', [ApiKeyController::class, 'store'])->name('store');
+        Route::get('/{apiKey}', [ApiKeyController::class, 'show'])->name('show');
+        Route::get('/{apiKey}/edit', [ApiKeyController::class, 'edit'])->name('edit');
+        Route::put('/{apiKey}', [ApiKeyController::class, 'update'])->name('update');
+        Route::delete('/{apiKey}', [ApiKeyController::class, 'destroy'])->name('destroy');
+        Route::post('/{apiKey}/regenerate', [ApiKeyController::class, 'regenerate'])->name('regenerate');
+        Route::get('/statistics', [ApiKeyController::class, 'statistics'])->name('statistics');
+    });
+
 
     // =======================================
     // GESTION DES PAIEMENTS
@@ -223,12 +307,16 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
 
         // Historique
         Route::get('/history', [PaymentController::class, 'history'])->name('history');
+
+        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
+        Route::get('/{payment}/invoice', [PaymentController::class, 'downloadInvoice'])->name('invoice');
     });
+
 
     // =======================================
     // GESTION DES TEMPLATES
     // =======================================
-    Route::prefix('templates')->name('templates.')->group(function () {
+    /* Route::prefix('templates')->name('templates.')->group(function () {
         // Mes templates
         Route::get('/', [TemplateController::class, 'index'])->name('index');
 
@@ -248,7 +336,17 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
 
         // Supprimer un template
         Route::delete('/{template}', [TemplateController::class, 'destroy'])->name('destroy');
-    });
+    }); */
+
+    Route::middleware(['auth'])->group(function () {
+    Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');
+    Route::get('/templates/{slug}', [TemplateController::class, 'show'])->name('templates.show');
+    Route::post('/templates/{slug}/apply', [TemplateController::class, 'apply'])->name('templates.apply');
+    Route::get('/my-templates', [TemplateController::class, 'myTemplates'])->name('templates.my');
+    Route::post('/templates/{template}/favorite', [TemplateController::class, 'favorite'])->name('templates.favorite');
+    Route::delete('/templates/{template}/favorite', [TemplateController::class, 'unfavorite'])->name('templates.unfavorite');
+});
+
 
     // =======================================
     // GESTION DES INTÉGRATIONS
@@ -298,6 +396,8 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
         // Notification settings
         Route::get('/notifications', [ProfileController::class, 'notificationSettings'])->name('notifications');
         Route::put('/notifications', [ProfileController::class, 'updateNotifications'])->name('notifications.update');
+        Route::delete('/profile', [ProfileController::class, 'deleteAccount'])->name('delete');
+        Route::get('/profile/export', [ProfileController::class, 'exportData'])->name('profile.export');
     });
 
     // =======================================
@@ -311,6 +411,7 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
         // Préférences
         Route::get('/preferences', [SettingController::class, 'preferences'])->name('preferences');
         Route::put('/preferences', [SettingController::class, 'updatePreferences'])->name('preferences.update');
+         Route::put('/notifications', [SettingController::class, 'updateNotifications'])->name('notifications.update');
 
         // Équipe (pour les plans Business)
         Route::middleware('can:manage-team')->group(function () {
@@ -335,6 +436,7 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
 
         // Suppression du compte
         Route::delete('/delete-account', [SettingController::class, 'deleteAccount'])->name('delete-account');
+                Route::get('/notifications', [SettingController::class, 'notifications'])->name('notifications');
     });
 
     // =======================================
@@ -353,6 +455,15 @@ Route::middleware(['auth', 'check.subscription'])->group(function () {
     // =======================================
     Route::get('/statistics', [StatisticController::class, 'global'])->name('statistics');
     Route::get('/statistics/export', [StatisticController::class, 'export'])->name('statistics.export');
+
+
+    // =======================================
+    // WEBHOOKS
+    // =======================================
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 });
 
 // ===========================================
@@ -373,8 +484,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/plans/{plan}/toggle', [App\Http\Controllers\Admin\PlanController::class, 'toggle'])->name('plans.toggle');
 
     // Gestion des templates
-    Route::resource('templates', App\Http\Controllers\Admin\TemplateController::class);
-    Route::post('/templates/{template}/toggle-premium', [App\Http\Controllers\Admin\TemplateController::class, 'togglePremium'])->name('templates.toggle-premium');
+    /* Route::resource('templates', App\Http\Controllers\Admin\TemplateController::class);
+    Route::post('/templates/{template}/toggle-premium', [App\Http\Controllers\Admin\TemplateController::class, 'togglePremium'])->name('templates.toggle-premium'); */
+    Route::get('/templates', [TemplateController::class, 'adminIndex'])->name('templates.index');
+    Route::get('/templates/create', [TemplateController::class, 'create'])->name('templates.create');
+    Route::post('/templates', [TemplateController::class, 'store'])->name('templates.store');
+    Route::get('/templates/{template}/edit', [TemplateController::class, 'edit'])->name('templates.edit');
+    Route::put('/templates/{template}', [TemplateController::class, 'update'])->name('templates.update');
+    Route::delete('/templates/{template}', [TemplateController::class, 'destroy'])->name('templates.destroy');
+    Route::post('/templates/{template}/duplicate', [TemplateController::class, 'duplicate'])->name('templates.duplicate');
+    Route::post('/templates/{template}/toggle-status', [TemplateController::class, 'toggleStatus'])->name('templates.toggle-status');
+    Route::post('/templates/{template}/toggle-premium', [TemplateController::class, 'togglePremium'])->name('templates.toggle-premium');
+    Route::get('/templates/{template}/preview', [TemplateController::class, 'preview'])->name('templates.preview');
+    Route::get('/templates/export/{template}', [TemplateController::class, 'export'])->name('templates.export');
+    Route::post('/templates/import', [TemplateController::class, 'import'])->name('templates.import');
+    Route::get('/templates/statistics', [TemplateController::class, 'statistics'])->name('templates.statistics');
 
     // Gestion des paiements
     Route::get('/payments', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments');
@@ -387,6 +511,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     // Configuration système
     Route::get('/settings', [App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings');
     Route::post('/settings', [App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+    Route::get('/notifications', [SettingController::class, 'notifications'])->name('notifications');
+
 
     // Logs système
     Route::get('/logs', [App\Http\Controllers\Admin\LogController::class, 'index'])->name('logs');
@@ -426,6 +552,6 @@ if (app()->environment('local')) {
 // ===========================================
 // FALLBACK ROUTE (page 404 personnalisée)
 // ===========================================
-Route::fallback(function () {
+/* Route::fallback(function () {
     return view('errors.404');
-});
+}); */

@@ -90,4 +90,12 @@ class User extends Authenticatable
     {
         return $this->hasRole('user');
     }
+    public function paymentMethods()
+    {
+        // return $this->hasMany(PaymentMethod::class); // Si vous avez un modèle PaymentMethod
+        // OU
+        return $this->payments(); // Si vous voulez utiliser la relation payments existante
+    }
+
+ 
 }
