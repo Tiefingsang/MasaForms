@@ -78,6 +78,8 @@ Route::prefix('f')->name('forms.public.')->group(function () {
     Route::post('/{slug}/upload', [PublicFormController::class, 'upload'])->name('upload');
 });
 
+
+
 // ===========================================
 // ROUTES D'AUTHENTIFICATION (Non connectés)
 // ===========================================
