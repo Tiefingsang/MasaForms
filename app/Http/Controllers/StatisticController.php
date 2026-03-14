@@ -53,32 +53,50 @@ class StatisticController extends Controller
      * Statistiques pour un formulaire spécifique
      */
     public function formStats(Form $form)
-    {
-        $this->authorize('view', $form);
+{   //dd('jjjjjj');
+    $this->authorize('view', $form);
 
-        $stats = [
-            'total_responses' => $form->responses()->count(),
-            'completion_rate' => $this->calculateCompletionRate($form),
-            'avg_completion_time' => $form->responses()->avg('completion_time'),
-            'responses_by_day' => $form->responses()
-                ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as total'))
-                ->groupBy('date')
-                ->orderBy('date')
-                ->get(),
+    $stats = [
+        'total_responses' => $form->responses()->count(),
+        'completion_rate' => $this->calculateCompletionRate($form),
+        'avg_completion_time' => $form->responses()->avg('completion_time'),
+        'responses_by_day' => $form->responses()
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as total'))
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->limit(30)
+            ->get(),
+        'responses_by_hour' => $form->responses()
+            ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('count(*) as total'))
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get(),
+    ];
+
+    // Statistiques par champ
+    $fieldStats = [];
+    foreach ($form->fields as $field) {
+        $fieldStats[$field->id] = [
+            'field' => $field,
+            'total' => $field->responseValues()->count(),
+            'filled' => $field->responseValues()->whereNotNull('value')->count(),
+            'empty' => $field->responseValues()->whereNull('value')->count(),
         ];
 
-        // Statistiques par champ
-        $fieldStats = [];
-        foreach ($form->fields as $field) {
-            $fieldStats[$field->id] = [
-                'field' => $field,
-                'responses' => $field->responseValues()->count(),
-                'values' => $this->getFieldValueDistribution($field),
-            ];
+        // Pour les champs à choix multiples, ajouter la distribution
+        if (in_array($field->type, ['radio', 'select', 'checkbox'])) {
+            $fieldStats[$field->id]['distribution'] = $field->responseValues()
+                ->select('value', DB::raw('count(*) as total'))
+                ->groupBy('value')
+                ->orderBy('total', 'desc')
+                ->get();
         }
-
-        return view('statistics.form', compact('form', 'stats', 'fieldStats'));
     }
+
+    return view('statistics.form', compact('form', 'stats', 'fieldStats'));
+}
+
+
 
     /**
      * Exporter les statistiques

@@ -213,7 +213,7 @@
                                         </form>
 
                                         <!-- Statistiques -->
-                                        <a href="{{ route('forms.responses.statistics', $form) }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a href="{{ route('forms.statistics', $form) }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i class="fas fa-chart-pie w-5 text-gray-500 mr-3"></i>
                                             Statistiques
                                         </a>

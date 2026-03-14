@@ -69,6 +69,7 @@ class ResponseController extends Controller
     /**
      * Exporter les réponses en CSV
      */
+
     public function exportCsv(Form $form)
     {
         $this->authorize('view', $form);
@@ -99,4 +100,34 @@ class ResponseController extends Controller
             'reponses-' . $form->slug . '-' . now()->format('Y-m-d') . '.xlsx'
         );
     }
+
+    /**
+     * Exporter les réponses en PDF
+     */
+    public function exportPdf(Form $form)
+    {
+        $this->authorize('view', $form);
+
+        // Vérifier si l'utilisateur a accès à l'export PDF
+        $plan = auth()->user()->currentPlan()->first();
+        if (!$plan || !$plan->has_export_pdf) {
+            return redirect()->back()
+                ->with('error', 'L\'export PDF n\'est pas disponible dans votre plan.');
+        }
+
+        $responses = $form->responses()
+            ->with('values.field')
+            ->latest()
+            ->get();
+
+        $pdf = Pdf::loadView('exports.form-responses-pdf', [
+            'form' => $form,
+            'responses' => $responses
+        ]);
+
+        return $pdf->download('reponses-' . $form->slug . '-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+
+    
 }

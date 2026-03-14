@@ -241,8 +241,10 @@ Route::get('/test-notification', function() {
         Route::post('/bulk-export', [ResponseController::class, 'bulkExport'])->name('bulk-export');
 
         // Statistiques du formulaire
-        Route::get('/statistics', [StatisticController::class, 'formStats'])->name('statistics');
+
+        //Route::get('/statistics', [StatisticController::class, 'formStats'])->name('statistics');
     });
+    Route::get('/forms/{form}/statistics', [StatisticController::class, 'formStats'])->name('forms.statistics');
 
     // =======================================
     // GESTION DES PLANS ET ABONNEMENTS
@@ -256,7 +258,8 @@ Route::get('/test-notification', function() {
 
         // S'abonner à un plan
 
-        Route::post('/{slug}/subscribe', [PlanController::class, 'subscribe'])->name('subscribe');
+        //Route::post('/{slug}/subscribe', [PlanController::class, 'subscribe'])->name('subscribe');
+        Route::get('/{slug}/subscribe', [PlanController::class, 'subscribe'])->name('subscribe');
 
         // Changer de plan
         Route::post('/{slug}/switch', [PlanController::class, 'switch'])->name('switch');

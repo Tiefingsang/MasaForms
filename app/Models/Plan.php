@@ -14,7 +14,7 @@ class Plan extends Model
         'has_advanced_stats', 'has_export_csv', 'has_export_excel', 'has_export_pdf',
         'has_multi_users', 'has_automations', 'has_custom_logo', 'has_remove_masadigitale_logo',
         'has_whatsapp_integration', 'has_email_notifications', 'has_api_access', 'has_templates',
-        'price_monthly', 'price_yearly', 'sort_order', 'is_popular', 'is_active'
+        'price_monthly', 'price_yearly', 'sort_order', 'is_popular', 'is_active', 
     ];
 
     protected $casts = [
