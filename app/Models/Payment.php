@@ -11,7 +11,7 @@ class Payment extends Model
 
     protected $fillable = [
         'user_id', 'subscription_id', 'transaction_id', 'amount', 'currency',
-        'payment_method', 'payment_provider', 'status', 'provider_response', 'paid_at'
+        'payment_method', 'payment_provider', 'status', 'provider_response', 'paid_at',
     ];
 
     protected $casts = [
@@ -40,5 +40,10 @@ class Payment extends Model
     public function getAmountFormattedAttribute()
     {
         return number_format($this->amount, 0, ',', ' ') . ' ' . $this->currency;
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class);
     }
 }

@@ -14,7 +14,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'email', 'password', 'company_name', 'phone',
-        'avatar', 'role', 'is_active'
+        'avatar', 'role', 'is_active', 'plan_id' // 👈 AJOUTEZ plan_id ICI
     ];
 
     protected $hidden = [
@@ -42,6 +42,17 @@ class User extends Authenticatable
         return $this->hasOne(Subscription::class)->where('status', 'active');
     }
 
+    /**
+     * Relation directe avec le plan actuel
+     */
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * Relation pour obtenir le plan via l'abonnement actif
+     */
     public function currentPlan()
     {
         return $this->hasOneThrough(Plan::class, Subscription::class, 'user_id', 'id', 'id', 'plan_id')
@@ -66,7 +77,7 @@ class User extends Authenticatable
 
     public function canCreateForm()
     {
-        $plan = $this->currentPlan()->first();
+        $plan = $this->plan; // Utilisez la relation directe maintenant
         if (!$plan || is_null($plan->max_forms)) {
             return true; // Illimité
         }
@@ -77,7 +88,7 @@ class User extends Authenticatable
 
     public function getFormsLeftAttribute()
     {
-        $plan = $this->currentPlan()->first();
+        $plan = $this->plan; // Utilisez la relation directe
         if (!$plan || is_null($plan->max_forms)) {
             return '∞';
         }
@@ -90,12 +101,11 @@ class User extends Authenticatable
     {
         return $this->hasRole('user');
     }
+
     public function paymentMethods()
     {
-        // return $this->hasMany(PaymentMethod::class); // Si vous avez un modèle PaymentMethod
-        // OU
-        return $this->payments(); // Si vous voulez utiliser la relation payments existante
+        return $this->payments(); // Relation existante
     }
 
- 
+    
 }

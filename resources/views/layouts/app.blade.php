@@ -4,7 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Masadigitale Forms') - {{ config('app.name') }}</title>
+
+    <!-- Title SEO -->
+    <title>@yield('title', 'MasaForm - Plateforme de formulaires en ligne au Mali et en Afrique')</title>
+
+    <!-- Meta SEO -->
+    <meta name="description" content="MasaForm est une plateforme de création de formulaires en ligne développée par Masadigitale. Créez des sondages, formulaires d'inscription et enquêtes pour entreprises en Afrique.">
+
+    <meta name="keywords" content="formulaire en ligne Mali, créer formulaire Afrique, sondage en ligne, formulaire entreprise, formulaire inscription école, enquête client Afrique">
+
+    <meta name="author" content="Masadigitale">
+
+    <!-- Robots -->
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+    <meta property="og:title" content="MasaForm - Créer des formulaires en ligne facilement">
+    <meta property="og:description" content="Plateforme africaine pour créer des formulaires, enquêtes et sondages en ligne.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://masaform.com">
+    <meta property="og:image" content="{{ asset('images/logo.png') }}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MasaForm - Plateforme de formulaires en ligne">
+    <meta name="twitter:description" content="Créez des formulaires, sondages et enquêtes facilement avec MasaForm.">
+    <meta name="twitter:image" content="{{ asset('images/logo.png') }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ url()->current() }}">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -80,7 +111,7 @@
             <div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
                 <div class="flex h-16 shrink-0 items-center">
                     <img class="h-8 w-auto" src="{{ asset('images/logo.png') }}" alt="Masadigitale">
-                    <span class="ml-2 text-xl font-bold text-gray-900">Forms</span>
+                   {{--  <span class="ml-2 text-xl font-bold text-gray-900">Forms</span> --}}
                 </div>
                 <nav class="flex flex-1 flex-col">
                     <ul role="list" class="flex flex-1 flex-col gap-y-7">

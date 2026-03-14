@@ -114,7 +114,8 @@
                                     Plan actuel
                                 </button>
                             @else
-                                <a href="{{ route('plans.subscribe', $plan->slug) }}"
+                                {{-- <a href="{{ route('plans.subscribe', $plan->slug) }}" --}}
+                                <a href="{{ route('payment.select', ['plan' => $plan, 'interval' => 'monthly']) }}"
                                    class="block w-full text-center bg-{{ $plan->is_popular ? 'blue' : 'gray' }}-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-{{ $plan->is_popular ? 'blue' : 'gray' }}-700 transition duration-200">
                                     {{ $plan->price_monthly > 0 ? 'Choisir ce plan' : 'Commencer gratuitement' }}
                                 </a>

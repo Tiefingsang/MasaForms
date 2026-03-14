@@ -108,6 +108,10 @@ Route::get('/team/accept/{token}', [TeamController::class, 'acceptInvitation'])-
 Route::get('/team/decline/{token}', [TeamController::class, 'declineInvitation'])->name('team.decline');
 Route::post('/team/cancel/{invitation}', [TeamController::class, 'cancelInvitation'])->name('team.cancel')->middleware('auth');
 
+// Webhook de paiement (Stripe, PayPal, etc.)
+Route::post('/payment/webhook', [PaymentController::class, 'webhook'])
+    ->name('payment.webhook');
+
 // ===========================================
 // ROUTES PROTÉGÉES (Utilisateurs connectés)
 // ===========================================
@@ -296,7 +300,7 @@ Route::get('/test-notification', function() {
     // =======================================
     Route::prefix('payment')->name('payment.')->group(function () {
         // Checkout
-        Route::get('/checkout/{subscription}', [PaymentController::class, 'checkout'])->name('checkout');
+        //Route::get('/checkout/{subscription}', [PaymentController::class, 'checkout'])->name('checkout');
 
         // Traitement du paiement
         Route::post('/process', [PaymentController::class, 'process'])->name('process');
@@ -315,7 +319,16 @@ Route::get('/test-notification', function() {
 
         Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
         Route::get('/{payment}/invoice', [PaymentController::class, 'downloadInvoice'])->name('invoice');
-    });
+        Route::get('/plans/{plan}/payment/{interval?}', [PaymentController::class, 'selectMethod'])
+        ->name('select');
+
+        // Initier un paiement
+        Route::post('/plans/{plan}/payment/initiate', [PaymentController::class, 'initiate'])
+            ->name('initiate');
+        });
+
+        Route::get('/plans/{plan}/payment/{interval?}', [PaymentController::class, 'selectMethod'])
+        ->name('select');
 
 
     // =======================================
@@ -557,6 +570,6 @@ if (app()->environment('local')) {
 // ===========================================
 // FALLBACK ROUTE (page 404 personnalisée)
 // ===========================================
-/* Route::fallback(function () {
+Route::fallback(function () {
     return view('errors.404');
-}); */
+});
